@@ -1,0 +1,9 @@
+{
+  "dock_apps": ["com.netflix.ninja", "com.google.android.youtube.tv", "com.vidio.android.tv", "com.amazon.amazonvideo.livingroom",
+                "com.molatvbox", "com.spotify.tv.android", "com.google.android.youtube.tvmusic"],
+  "quran_verses": true,
+  "prayer_times": {"lat": 3.5952, "lon": 98.6722},
+  "reduced_motion": true,
+  "places": false,
+  "wallpaper_minutes": 60
+}

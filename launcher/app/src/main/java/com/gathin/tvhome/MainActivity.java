@@ -77,6 +77,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private static final long MINUTE_MS = 60_000L;
+    /** One row's scroll on Up or Down: short enough to keep up with a held key, long enough to follow. */
+    private static final int ROW_SCROLL_MS = 220;
+    private static final android.view.animation.Interpolator ROW_SCROLL_EASE =
+            new android.view.animation.DecelerateInterpolator(1.5f);
     private String liveTvPkg;
     private String liveTvAction;
     private String inputAction;
@@ -104,6 +108,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** The breathing room between the shelf's last line and the top of the app container. */
     private static final float HERO_GAP_DP = 67f;
     private static final float HERO_TITLE_MIN_SP = 26f;
+    /** Verse sizes: Arabic with its vowel marks reads well a little smaller than a place's name. */
+    private static final float VERSE_MAX_SP = 28f, VERSE_MIN_SP = 20f;
     /** The shelf's width in pixels, worked out once from the screen. */
     private int heroMaxWidth, heroNameMaxWidth;
     private View heroShelf;
@@ -113,6 +119,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** The place on screen and a few lines about it; null for the user's own wallpapers. */
     private String placeName;
     private String placeText = "", placeCountry = "";
+    /** Verses instead of places on the shelf ("quran_verses"); the verse shown, and the picture it came with. */
+    private boolean quranVerses;
+    private String[] verse;
+    private File versePicture;
     private int ambientColor = -1;
     private boolean heroShown;
     /** The glow behind the tiles. It follows every app, while the shelf only names dock apps. */
@@ -129,6 +139,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView btnWifi;
     private TextView shamsiDate;
     private boolean shamsi;
+    private TextView prayerTimes;
+    private double prayerLat = Double.NaN, prayerLon = Double.NaN;
     private String vpnApp;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
@@ -231,6 +243,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void run() {
             updateShamsiDate();
+            updatePrayerTimes();
             updateWifiLabel();
             refreshPlacesIfDue();
             handler.postDelayed(this, MINUTE_MS);
@@ -281,6 +294,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int usable = getResources().getDisplayMetrics().widthPixels - (int) ((55 + 56) * density);
         heroMaxWidth = Math.round(usable * HERO_WIDTH_SHARE);
         heroNameMaxWidth = Math.round(usable * HERO_NAME_WIDTH_SHARE);
+        quranVerses = cfg.quranVerses;
+        if (quranVerses) {
+            // A verse is never cut short, so it and its meaning get the whole width: the longest verse then
+            // fits two lines (verseSizeSp) and its meaning three, which keeps the shelf under the prayer line.
+            // Arabic needs its full line height for the vowel marks.
+            heroNameMaxWidth = heroMaxWidth = usable;
+            heroName.setMaxLines(2);
+            heroName.setLineSpacing(0f, 1f);
+            heroName.setIncludeFontPadding(true);
+            heroDesc.setMaxLines(3);
+        }
         heroName.setMaxWidth(heroNameMaxWidth);
         heroDesc.setMaxWidth(heroMaxWidth);
         // The shelf grows and shrinks with the name and the description, so it hangs from its
@@ -293,6 +317,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
         shamsiDate = findViewById(R.id.shamsiDate);
         shamsi = cfg.shamsiDate;
+        prayerTimes = findViewById(R.id.prayerTimes);
+        prayerLat = cfg.prayerLat;
+        prayerLon = cfg.prayerLon;
+        prayerTimes.setVisibility(Double.isNaN(prayerLat) ? View.GONE : View.VISIBLE);
         if (shamsi) {
             shamsiDate.setVisibility(View.VISIBLE);
             TextView date = findViewById(R.id.date);
@@ -326,6 +354,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 // tray hundreds of pixels up the screen until focus slid them down.
                 parkDock();
                 super.onLayoutChildren(recycler, state);
+            }
+
+            @Override
+            protected void calculateExtraLayoutSpace(@NonNull RecyclerView.State state, @NonNull int[] extra) {
+                // Keep the row past each edge laid out, so Up and Down always find their tile at once.
+                // Otherwise the grid first scrolled the row in, then focused it and scrolled again.
+                extra[0] = extra[1] = grid.getHeight() / 2;
             }
         });
         grid.setHasFixedSize(true);
@@ -669,6 +704,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         resuming = true;
         reloadApps(true);
         updateShamsiDate();
+        updatePrayerTimes();
         updateWifiLabel();
         updateInputsButton();
         startWallpaperRotation();
@@ -804,7 +840,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- glass highlight -------------------------------------------------------------------------
 
     /** Reused by every focus move. */
-    private final Rect tileRect = new Rect(), showRect = new Rect();
+    private final Rect tileRect = new Rect();
 
     @Override
     public void onTileFocused(int position, View card) {
@@ -848,26 +884,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         gliderOnPill = false;
         glassShown = true;
         View item = (View) card.getParent();
+        // Every row, the dock included, comes to rest on the dock's line: each Up or Down moves the
+        // apps by exactly one row and focus stays at the same height. Scrolling only when a row would
+        // leave the screen moved the apps on some presses and not others, and jumping them (reduced
+        // motion) while the highlight glided lost the eye; one short glide is easy to follow.
+        int dy = grid.getLayoutManager().getDecoratedTop(item) - grid.getPaddingTop();
+        // A 1px mismatch used to start a scroll on every dock move. Only scroll when the row is actually off.
+        boolean scroll = Math.abs(dy) > (int) (8 * density);
+        if (scroll) grid.smoothScrollBy(0, dy, ROW_SCROLL_EASE, ROW_SCROLL_MS);
         if (position < COLUMNS) {
-            // Dock: park it at the bottom of the screen and show the top shelf for this app.
-            int decoratedTop = item.getTop() - (int) (6 * density);
-            int dy = decoratedTop - grid.getPaddingTop();
-            // A 1px mismatch used to start a scroll on every dock move. Only scroll when the row is
-            // actually off; reduced motion does it in one jump so it does not fight the highlight.
-            boolean scroll = Math.abs(dy) > (int) (8 * density);
-            if (scroll) {
-                if (reducedMotion) grid.scrollBy(0, dy);
-                else grid.smoothScrollBy(0, dy);
-            }
+            // Dock: show the top shelf for this app.
             showHero(position, scroll ? r.top - dy : r.top);
         } else {
             // Below the dock there is no shelf, but the glow still takes this app's colour, so every
             // tile lights the room the same way the dock does.
             hideShelf();
             showAmbient(adapter.ambientColorAt(position));
-            // Scroll just enough so the whole glass (not only the tile) is visible.
-            showRect.set(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-            grid.requestChildRectangleOnScreen(item, showRect, reducedMotion);
         }
     }
 
@@ -985,7 +1017,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** The shelf's two lines. An empty description takes no room, so the title keeps its place. */
     private void setHeroText(String title, String where, String desc) {
-        heroName.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, titleSizeSp(title));
+        heroName.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,
+                quranVerses && placeName != null ? verseSizeSp(title) : titleSizeSp(title));
         heroName.setText(title);
         heroWhere.setText(where);
         heroWhere.setVisibility(where.isEmpty() ? View.GONE : View.VISIBLE);
@@ -1037,13 +1070,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return HERO_TITLE_MIN_SP;
     }
 
+    /** The largest size at which the verse fits in two lines. */
+    private float verseSizeSp(String text) {
+        if (heroNameMaxWidth <= 0) return VERSE_MIN_SP;
+        android.text.TextPaint paint = new android.text.TextPaint(heroName.getPaint());
+        float scaled = getResources().getDisplayMetrics().scaledDensity;
+        for (float sp = VERSE_MAX_SP; sp > VERSE_MIN_SP; sp -= 2f) {
+            paint.setTextSize(sp * scaled);
+            if (android.text.StaticLayout.Builder.obtain(text, 0, text.length(), paint, heroNameMaxWidth)
+                    .build().getLineCount() <= 2) return sp;
+        }
+        return VERSE_MIN_SP;
+    }
+
     /**
      * Follows the rotation: the shelf names whichever place is on screen. Called after the picture
      * changes, so the words and the picture never disagree.
      */
     private void setPlace(File picture) {
         String[] about = placesMode ? PlaceWallpapers.describe(picture) : null;
-        String title = about != null ? titleCase(about[0]) : null;
+        if (quranVerses) {
+            // The next verse with each new picture; asked again for the same one, the same verse.
+            if (verse == null || !picture.equals(versePicture)) {
+                String[] next = QuranVerses.next(this);
+                if (next != null) verse = next;
+                versePicture = picture;
+            }
+            // In the place's slots: the verse as the name, its reference as the country, the meaning below.
+            if (verse != null) about = new String[]{verse[1], verse[2], verse[0]};
+        }
+        String title = about == null ? null : quranVerses && verse != null ? about[0] : titleCase(about[0]);
         String overview = about != null ? about[1] : "";
         String country = about != null && about.length > 2 ? about[2] : "";
         if (title == null ? placeName == null : title.equals(placeName)) return;
@@ -1460,6 +1516,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void updateShamsiDate() {
         if (shamsi) shamsiDate.setText(Shamsi.today());
+    }
+
+    private void updatePrayerTimes() {
+        if (!Double.isNaN(prayerLat)) prayerTimes.setText(PrayerTimes.line(prayerLat, prayerLon));
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
