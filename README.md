@@ -19,6 +19,17 @@ and come home to just your apps, with a new place to visit behind them every wee
 > - [`themes/green-lake`](themes/green-lake): a theme for Medan with 28 pictures of mosques and nature from
 >   Wikimedia Commons ([credits](themes/green-lake/ATTRIBUTION.txt)), and `backup-tv.sh` / `rollback-tv.sh` to
 >   snapshot a TV's settings before setup and put them back.
+>
+> Screenshots from a Polytron Android TV 14 (1 GB of RAM) with the green-lake theme:
+>
+> <p>
+>   <img src="docs/fork/home-masjid.jpg" width="49%" alt="Home over the Blue Mosque: the clock, today's prayer times with Magrib next, and QS. Al-An'am 162 in Arabic with its Indonesian meaning above the dock">
+>   <img src="docs/fork/home-danau.jpg" width="49%" alt="Home over a mountain lake with QS. Al-A'raf 23">
+>   <img src="docs/fork/home-badshahi.jpg" width="49%" alt="Home over the Badshahi Mosque with QS. At-Taubah 51">
+>   <img src="docs/fork/home-air-terjun.jpg" width="49%" alt="Home over a waterfall with QS. Ar-Ra'd 28">
+>   <img src="docs/fork/navigasi.jpg" width="49%" alt="The second row selected: it rests on the dock's line, the dock above it">
+>   <img src="docs/fork/screensaver.jpg" width="49%" alt="The screensaver over a lake: the clock, 17:28, Magrib in 44 minutes, and today's prayer times">
+> </p>
 
 Glass TV debloats any Android TV or Google TV over Wi-Fi, with no root and nothing that can't be undone, then
 swaps the ad-filled home screen for a light one in frosted glass, with a new set of places behind your apps
