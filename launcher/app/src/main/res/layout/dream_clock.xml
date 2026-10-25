@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Screensaver (ClockDream): a grey analog clock with the time and date beneath, drifting a little each
-     minute, on the same grey as the clock's face. ClockDream adds the dial and sizes everything to the
+     minute, on the same grey as the clock's face, or on the theme's own pictures (added in code). ClockDream adds the dial and sizes everything to the
      screen's height. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -30,7 +30,9 @@
                 android:textColor="#FFD4D4D6"
                 android:fontFamily="@font/outfit"
                 android:fontVariationSettings="'wght' 500"
-                android:includeFontPadding="false" />
+                android:includeFontPadding="false"
+                android:shadowColor="#99000000"
+                android:shadowRadius="6" />
 
             <!-- Top-aligned to the digits: ClockDream lines up the tops of the letters. -->
             <TextClock
@@ -55,6 +57,39 @@
             android:fontVariationSettings="'wght' 400"
             android:letterSpacing="0.14"
             android:textAllCaps="true"
-            android:includeFontPadding="false" />
+            android:includeFontPadding="false"
+            android:shadowColor="#99000000"
+            android:shadowRadius="6" />
+
+        <!-- With prayer_times in the theme: what comes next and how long until it, then today's times. -->
+        <TextView
+            android:id="@+id/dreamNext"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:textColor="#FFD4D4D6"
+            android:textSize="18sp"
+            android:shadowColor="#99000000"
+            android:shadowRadius="6"
+            android:fontFamily="@font/outfit"
+            android:fontVariationSettings="'wght' 500"
+            android:includeFontPadding="false"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/dreamPrayers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:singleLine="true"
+            android:textColor="#FFB5B6B8"
+            android:textSize="14sp"
+            android:shadowColor="#99000000"
+            android:shadowRadius="6"
+            android:fontFamily="@font/outfit"
+            android:fontVariationSettings="'wght' 400"
+            android:letterSpacing="0.04"
+            android:includeFontPadding="false"
+            android:visibility="gone" />
     </LinearLayout>
 </FrameLayout>

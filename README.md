@@ -3,6 +3,23 @@
 **Make your Android TV or Google TV fast and ad-free again: strip out the bloat and ads, free up memory,
 and come home to just your apps, with a new place to visit behind them every week.**
 
+> **This fork** ([freespark/glass-tv](https://github.com/freespark/glass-tv), from
+> [cocombee/glass-tv](https://github.com/cocombee/glass-tv)) adds, all offline and all switched on from a theme:
+>
+> - **Prayer times** under the clock and on the screensaver, worked out on the TV with Indonesia's Kemenag
+>   method (Imsak, Subuh, Terbit, Zuhur, Asar, Magrib, Isya), the next one brighter, and a countdown to it on the
+>   screensaver: `"prayer_times": {"lat": 3.5952, "lon": 98.6722}`.
+> - **Verses of the Qur'an** on the shelf above the dock instead of the place's name: the Arabic (Tanzil,
+>   verbatim), its reference and the Indonesian translation (Kementerian Agama RI), a new one with each picture:
+>   `"quran_verses": true`. The list and its sources are in
+>   [`quran_verses.txt`](launcher/app/src/main/res/raw/quran_verses.txt).
+> - **The theme's own pictures on the screensaver**, behind the clock.
+> - **Steadier navigation**: every row comes to rest on the dock's line, so Up and Down always move the apps by
+>   one row with one short glide.
+> - [`themes/green-lake`](themes/green-lake): a theme for Medan with 28 pictures of mosques and nature from
+>   Wikimedia Commons ([credits](themes/green-lake/ATTRIBUTION.txt)), and `backup-tv.sh` / `rollback-tv.sh` to
+>   snapshot a TV's settings before setup and put them back.
+
 Glass TV debloats any Android TV or Google TV over Wi-Fi, with no root and nothing that can't be undone, then
 swaps the ad-filled home screen for a light one in frosted glass, with a new set of places behind your apps
 every week.
